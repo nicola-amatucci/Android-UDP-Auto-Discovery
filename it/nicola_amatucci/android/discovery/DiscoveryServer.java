@@ -25,35 +25,36 @@ import java.net.InetAddress;
 import android.net.wifi.WifiManager;
 import android.util.Log;
 
-public class Server extends Thread
+public class DiscoveryServer extends Thread
 {
 	public static String DEFAULT_TOKEN = "DISCOVERY_DEFAULT";
-	public static int DEFAULT_PORT = 9876;
+	public static int DEFAULT_PORT = 19876;
+	public int port_to_share;
 	String token;
 	String nome;
 	int port;
 	
-	public Server(String nome)
+	public DiscoveryServer(String nome, int port_to_share)
 	{
-		this (nome, DEFAULT_PORT, DEFAULT_TOKEN);
+		this (nome, port_to_share, DEFAULT_PORT, DEFAULT_TOKEN);
 	}
 	
-	public Server(String nome, String token)
+	public DiscoveryServer(String nome, int port_to_share, String token)
 	{
-		this (nome, DEFAULT_PORT, token);
+		this (nome, port_to_share, DEFAULT_PORT, token);
 	}
 	
-	public Server(String nome, int port)
+	public DiscoveryServer(String nome, int port_to_share, int port)
 	{
-		this (nome, port, DEFAULT_TOKEN);
+		this (nome, port_to_share, port, DEFAULT_TOKEN);
 	}	
 	
-	public Server(String nome, int port, String token)
+	public DiscoveryServer(String nome, int port_to_share, int port, String token)
 	{
 		this.nome = nome;		
 		this.token = token;
 		this.port = port;
-		
+		this.port_to_share = port_to_share;
 		this.start();
 	}
 
@@ -91,7 +92,7 @@ public class Server extends Thread
 			        if (sentence != null && sentence.substring(0, receivePacket.getLength()).trim().equals(token))
 			        {
 			        	Log.v("DISCOVERY_SERVER", "SEND '" + nome +"' to " + receivePacket.getAddress().getHostAddress() + ":" + receivePacket.getPort());        
-				        sendData = nome.getBytes();
+				        sendData = (nome + "," + port_to_share).getBytes();
 				        DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, receivePacket.getAddress(), receivePacket.getPort());
 				        serverSocket.send(sendPacket);
 			        }

@@ -5,13 +5,11 @@ Basic Android Client/Server Library for finding a Local Network Server IP throug
 # Using client
 
 	WifiManager wifiManager = (WifiManager)getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-	ArrayList<String[]> ret = Client.findServer(wifiManager, "MYAPP_TOKEN");
-
-stringArray[0] is the name, stringArray[1] is the ip
+	ArrayList<DiscoveryServerInfo> ret = Client.findServer(wifiManager, "MYAPP_TOKEN");
 
 # Using server
 
-	it.nicmaxdev.discovery.Server("NICOLA", "MYAPP_TOKEN");
+	it.nicmaxdev.discovery.Server("NICOLA", 123456, "MYAPP_TOKEN");
 
 # Thanks
 

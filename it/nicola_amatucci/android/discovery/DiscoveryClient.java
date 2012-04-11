@@ -23,33 +23,35 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
+import java.util.NoSuchElementException;
+import java.util.StringTokenizer;
 
 import android.net.wifi.WifiManager;
 import android.util.Log;
 
-public class Client {
+public class DiscoveryClient {
 	public static int DEFAULT_PORT = 19876;
 	
-	public static ArrayList<String[]> findServer(WifiManager mWifi) {
-		return Client.findServer(mWifi, Server.DEFAULT_PORT, Server.DEFAULT_TOKEN);
+	public static ArrayList<DiscoveryServerInfo> findServer(WifiManager mWifi) {
+		return DiscoveryClient.findServer(mWifi, DiscoveryServer.DEFAULT_PORT, DiscoveryServer.DEFAULT_TOKEN);
 	}
 
-	public static ArrayList<String[]> findServer(WifiManager mWifi, String token) {
-		return Client.findServer(mWifi, Server.DEFAULT_PORT, token);
+	public static ArrayList<DiscoveryServerInfo> findServer(WifiManager mWifi, String token) {
+		return DiscoveryClient.findServer(mWifi, DiscoveryServer.DEFAULT_PORT, token);
 	}
 
-	public static ArrayList<String[]> findServer(WifiManager mWifi, int port, String token)
+	public static ArrayList<DiscoveryServerInfo> findServer(WifiManager mWifi, int port, String token)
 	{
-		ArrayList<String[]> ret = new ArrayList<String[]>();
+		ArrayList<DiscoveryServerInfo> ret = new ArrayList<DiscoveryServerInfo>();
 		
 		try
 		{
-			DatagramSocket clientSocket = new DatagramSocket(DEFAULT_PORT);
+			DatagramSocket clientSocket = new DatagramSocket();
 			clientSocket.setBroadcast(true);
 			InetAddress IPAddress = Utils.getBroadcastAddress(mWifi);
 			Log.v("DISCOVERY_CLIENT", "broadcast addr " + IPAddress.getHostAddress());
-	        byte[] receiveData = new byte[128];
-	        byte[] sendData = new byte[128];
+			byte[] receiveData = new byte[128];
+			byte[] sendData = new byte[128];
 			
 			sendData = token.getBytes();
 			DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, port);
@@ -68,33 +70,47 @@ public class Client {
 					
 					if (receivePacket.getAddress() != null && receivePacket.getAddress().getHostAddress() != null)
 					{
-						String[] server = new String[2];
+						String discovered_name, discovered_ip;
+						int discovered_port;
 						
-						server[0] = new String(receivePacket.getData());
-						server[1] = receivePacket.getAddress().getHostAddress();
+						String received = new String(receivePacket.getData());
 						
-						if (server[0] != null)
+						if (received != null)
 						{
-							server[0] = server[0].trim().substring(0, receivePacket.getLength()).trim();
-							Log.v("DISCOVERY_CLIENT", "discovered " + server[0] + "," + server[1]);
-						}
-						
-						boolean add = true;
-						if (ret.size() > 0)
-						{
-							for (String[] s : ret)
+							received = received.trim().substring(0, receivePacket.getLength()).trim();
+							StringTokenizer st = new StringTokenizer(received, ",");
+							
+							try
 							{
-								if (s != null && s[1] != null && server[1] != null && s[1].equals(server[1]))
+								discovered_name = st.nextToken();							
+								discovered_ip = receivePacket.getAddress().getHostAddress();
+								discovered_port = Integer.parseInt(st.nextToken());
+															
+								Log.v("DISCOVERY_CLIENT", "discovered " + discovered_name + ", " + discovered_ip + ":" + discovered_port);
+															
+								boolean add = true;
+								if (ret.size() > 0)
 								{
-									add = false;
-									break;
+									for (DiscoveryServerInfo dsi : ret)
+									{
+										if (dsi != null && dsi.ip.equals(discovered_ip))
+										{
+											add = false;
+											break;
+										}
+									}
 								}
+								
+								if (add) {
+									ret.add( new DiscoveryServerInfo(discovered_name, discovered_ip, discovered_port) );
+								}	
 							}
-						}
-						
-						if (add) {
-							ret.add(server);
-						}
+							catch (NoSuchElementException nsee)
+							{
+								Log.v("DISCOVERY_CLIENT", nsee.getLocalizedMessage());
+							}
+							
+						}						
 					}
 					
 				}
